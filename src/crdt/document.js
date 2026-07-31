@@ -156,15 +156,24 @@ export class Doc {
     return op;
   }
 
-  render() {
+  /**
+   * Non-deleted nodes in document order.
+   * The editor maps DOM offsets to ids with this, so it is not test-only.
+   * Deleted nodes are still traversed because their children are live.
+   */
+  visible() {
     const out = [];
     const stack = [...(this.children.get(ROOT) ?? [])].reverse();
     while (stack.length) {
       const node = stack.pop();
-      if (!node.deleted) out.push(node.char);
+      if (!node.deleted) out.push(node);
       const kids = this.children.get(idStr(node.id));
       if (kids) for (let i = kids.length - 1; i >= 0; i--) stack.push(kids[i]);
     }
-    return out.join('');
+    return out;
+  }
+
+  render() {
+    return this.visible().map(n => n.char).join('');
   }
 }
