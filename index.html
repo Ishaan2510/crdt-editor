@@ -1,13 +1,19 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>crdt-editor</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
-  </body>
-</html>
+<div id="app">
+    <header>
+      <h1>Collaborative Editor</h1>
+      <span id="status" class="status offline">local only</span>
+    </header>
+
+    <div id="toolbar">
+      <button data-inline="bold"><b>B</b></button>
+      <button data-inline="italic"><i>I</i></button>
+      <button data-inline="code">&lt;/&gt;</button>
+      <span class="sep"></span>
+      <button data-block="heading" data-value="1">H1</button>
+      <button data-block="heading" data-value="2">H2</button>
+      <button data-block="list" data-value="bullet">List</button>
+    </div>
+
+    <div id="editor"></div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
