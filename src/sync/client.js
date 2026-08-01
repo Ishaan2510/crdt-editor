@@ -71,6 +71,7 @@ export class SyncClient {
   handle(msg) {
     if (msg.type === 'welcome') {
       this.serverVector = msg.vector ?? {};
+      if (msg.you?.name) this.identity.name = msg.you.name;
       this.onStatus('online');
       this.onPeers(msg.peers ?? []);
 

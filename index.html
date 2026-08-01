@@ -1,6 +1,7 @@
 <div id="app">
     <header>
       <h1>Collaborative Editor</h1>
+      <button id="share" class="ghost">Copy link</button>
       <button id="connection" class="ghost">Go offline</button>
       <span id="status" class="status connecting">connecting</span>
     </header>
@@ -20,6 +21,15 @@
     <div id="surface">
       <div id="editor"></div>
       <div id="presence"></div>
+    </div>
+
+    <div id="name-gate" class="gate" hidden>
+      <div class="gate-card">
+        <h2>Your name</h2>
+        <p>Shown to everyone editing this document.</p>
+        <input id="name-input" maxlength="18" autocomplete="off" />
+        <button id="name-go">Start editing</button>
+      </div>
     </div>
   </div>
   <script type="module" src="/src/main.js"></script>

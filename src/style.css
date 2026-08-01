@@ -82,3 +82,26 @@ header h1 { font-size: 18px; margin: 0 auto 0 0; font-weight: 600; }
   padding: 3px 5px; border-radius: 3px 3px 3px 0;
   white-space: nowrap;
 }
+
+
+.gate {
+  position: fixed; inset: 0; z-index: 20;
+  background: rgba(20, 20, 26, 0.45);
+  display: flex; align-items: center; justify-content: center;
+}
+.gate[hidden] { display: none; }
+.gate-card {
+  background: #fff; border-radius: 10px; padding: 24px;
+  width: 320px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+}
+.gate-card h2 { margin: 0 0 4px; font-size: 16px; }
+.gate-card p { margin: 0 0 16px; font-size: 13px; color: var(--muted); }
+.gate-card input {
+  width: 100%; height: 36px; padding: 0 10px; font: inherit; font-size: 14px;
+  border: 1px solid var(--line); border-radius: 6px; margin-bottom: 12px;
+}
+.gate-card input:focus { outline: none; border-color: var(--accent); }
+.gate-card button {
+  width: 100%; height: 36px; border: 0; border-radius: 6px;
+  background: var(--accent); color: #fff; font-size: 14px; cursor: pointer;
+}
