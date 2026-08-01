@@ -59,17 +59,24 @@ function setStatus(state) {
   if (state !== 'online') presence.clear();
 }
 
+const initials = name =>
+  name.split(/\s+/).slice(0, 2).map(w => w[0] ?? '').join('').toUpperCase() || '?';
+
 function drawRoster(list) {
   peersEl.replaceChildren();
-  const me = document.createElement('span');
-  me.className = 'chip';
-  me.innerHTML = `<span class="dot" style="background:${identity.color}"></span>${identity.name} (you)`;
-  peersEl.appendChild(me);
+  const all = [{ ...identity, self: true }, ...list];
 
-  for (const p of list) {
+  for (const p of all) {
     const chip = document.createElement('span');
-    chip.className = 'chip';
-    chip.innerHTML = `<span class="dot" style="background:${p.color}"></span>${p.name}`;
+    chip.className = 'chip' + (p.self ? ' self' : '');
+    chip.title = p.self ? `${p.name} (you)` : p.name;
+
+    const avatar = document.createElement('span');
+    avatar.className = 'avatar';
+    avatar.style.background = p.color;
+    avatar.textContent = initials(p.name);
+
+    chip.append(avatar, document.createTextNode(p.self ? `${p.name} (you)` : p.name));
     peersEl.appendChild(chip);
   }
 }

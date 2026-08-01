@@ -1,35 +1,55 @@
-<div id="app">
-    <header>
-      <h1>Collaborative Editor</h1>
-      <button id="share" class="ghost">Copy link</button>
-      <button id="connection" class="ghost">Go offline</button>
-      <span id="status" class="status connecting">connecting</span>
-    </header>
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Collaborative Editor</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <div class="brand">
+          <span class="mark"></span>
+          <h1>Collaborative Editor</h1>
+        </div>
 
-    <div id="toolbar">
-      <button data-inline="bold"><b>B</b></button>
-      <button data-inline="italic"><i>I</i></button>
-      <button data-inline="code">&lt;/&gt;</button>
-      <span class="sep"></span>
-      <button data-block="heading" data-value="1">H1</button>
-      <button data-block="heading" data-value="2">H2</button>
-      <button data-block="list" data-value="bullet">List</button>
-    </div>
+        <div id="peers"></div>
 
-    <div id="peers"></div>
+        <div class="controls">
+          <span id="status" class="status connecting">connecting</span>
+          <button id="share" class="ghost">Copy link</button>
+          <button id="connection" class="ghost">Go offline</button>
+        </div>
+      </header>
 
-    <div id="surface">
-      <div id="editor"></div>
-      <div id="presence"></div>
-    </div>
+      <div id="toolbar">
+        <button data-inline="bold"><b>B</b></button>
+        <button data-inline="italic"><i>I</i></button>
+        <button data-inline="code">&lt;/&gt;</button>
+        <span class="sep"></span>
+        <button data-block="heading" data-value="1">H1</button>
+        <button data-block="heading" data-value="2">H2</button>
+        <button data-block="list" data-value="bullet">List</button>
+      </div>
 
-    <div id="name-gate" class="gate" hidden>
-      <div class="gate-card">
-        <h2>Your name</h2>
-        <p>Shown to everyone editing this document.</p>
-        <input id="name-input" maxlength="18" autocomplete="off" />
-        <button id="name-go">Start editing</button>
+      <div id="surface">
+        <div id="editor"></div>
+        <div id="presence"></div>
+      </div>
+
+      <div id="name-gate" class="gate" hidden>
+        <div class="gate-card">
+          <h2>Your name</h2>
+          <p>Shown to everyone editing this document.</p>
+          <input id="name-input" maxlength="18" autocomplete="off" />
+          <button id="name-go">Start editing</button>
+        </div>
       </div>
     </div>
-  </div>
-  <script type="module" src="/src/main.js"></script>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
