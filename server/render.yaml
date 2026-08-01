@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: crdt-relay
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node index.js
+    healthCheckPath: /health

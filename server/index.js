@@ -54,9 +54,18 @@ function broadcast(r, msg, except) {
 }
 
 const http = createServer((req, res) => {
-  // Health endpoint, also used to wake the instance before a demo.
-  res.writeHead(200, { 'content-type': 'application/json' });
-  res.end(JSON.stringify({ ok: true, rooms: rooms.size }));
+  res.setHeader('access-control-allow-origin', '*');
+  if (req.url === '/health') {
+    res.writeHead(200, { 'content-type': 'application/json' });
+    return res.end(JSON.stringify({
+      ok: true,
+      rooms: rooms.size,
+      clients: wss.clients.size,
+      uptime: Math.round(process.uptime())
+    }));
+  }
+  res.writeHead(200, { 'content-type': 'text/plain' });
+  res.end('crdt relay');
 });
 
 const wss = new WebSocketServer({ server: http });
