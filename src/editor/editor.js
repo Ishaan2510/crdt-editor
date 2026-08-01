@@ -48,6 +48,7 @@ export class Editor {
         : domFromIndex(this.doc.caretAfter(focusId), this.map);
       setSelection(a, f);
     }
+    this.onAfterRender();
   }
 
   /** Reapply remote work without the local caret jumping. */
@@ -84,6 +85,14 @@ export class Editor {
       focusId: this.doc.anchorAt(r.end)
     };
   }
+
+  /** DOM point for a visible index. Used by the presence overlay. */
+  pointAt(index) {
+    return domFromIndex(index, this.map);
+  }
+
+  /** Called after any rebuild so overlays can re-measure. */
+  onAfterRender = () => {};
 
   /** Range the browser intends to affect. Gives word and line deletes free. */
   targetRange(e) {
