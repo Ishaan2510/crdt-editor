@@ -27,7 +27,7 @@ cd server && npm install && cd ..
 
 npm run relay   # WebSocket relay on :8787
 npm run dev     # Vite dev server on :5173
-npm test        # 45 tests across 5 files
+npm test        # 32 tests across 4 files
 ```
 
 ---
@@ -206,7 +206,7 @@ All in `src/crdt/convergence.test.js` and `src/crdt/format.test.js`.
 
 ## Tests
 
-45 tests across five files. `npm test`.
+32 tests across five files. `npm test`.
 
 **`document.test.js`** covers local editing, causal delivery of out-of-order
 inserts and deletes, and idempotent re-delivery.
