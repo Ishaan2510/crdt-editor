@@ -51,12 +51,6 @@ header {
 
 .brand { display: flex; align-items: center; gap: 10px; }
 
-.mark {
-  width: 9px; height: 9px; border-radius: 2px;
-  background: var(--ink);
-  box-shadow: 13px 0 0 -2px var(--ink-3);
-}
-
 header h1 {
   margin: 0;
   font-size: 14px; font-weight: 600;
