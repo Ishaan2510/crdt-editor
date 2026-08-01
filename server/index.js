@@ -75,7 +75,11 @@ wss.on('connection', (ws, req) => {
       const r = room(msg.room ?? 'default');
       ws.room = r;
       ws.site = msg.site;
-      ws.name = msg.name;
+      // Two people can pick the same name. Disambiguate on arrival.
+      const taken = new Set([...r.peers].map(p => p.name));
+      let name = (msg.name || 'Anonymous').slice(0, 18);
+      for (let n = 2; taken.has(name); n++) name = `${msg.name} ${n}`;
+      ws.name = name;
       ws.color = msg.color;
       r.peers.add(ws);
 
@@ -83,6 +87,7 @@ wss.on('connection', (ws, req) => {
       // lacks, and return our own vector so it can send what we lack.
       send(ws, {
         type: 'welcome',
+        you: { name: ws.name },
         vector: r.vector,
         ops: r.log.filter(op => !covers(msg.vector ?? {}, op)),
         peers: roster(r).filter(p => p.site !== ws.site).map(p => ({ ...p, ...(r.cursors.get(p.site) ?? {}) })),
