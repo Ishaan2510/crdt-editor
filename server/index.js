@@ -23,7 +23,9 @@ const allowed = origin =>
 const rooms = new Map();
 
 function room(id) {
-  if (!rooms.has(id)) rooms.set(id, { log: [], seen: new Set(), vector: {}, peers: new Set() });
+  if (!rooms.has(id)) rooms.set(id, {
+    log: [], seen: new Set(), vector: {}, peers: new Set(), cursors: new Map()
+  });
   return rooms.get(id);
 }
 
@@ -83,7 +85,7 @@ wss.on('connection', (ws, req) => {
         type: 'welcome',
         vector: r.vector,
         ops: r.log.filter(op => !covers(msg.vector ?? {}, op)),
-        peers: roster(r).filter(p => p.site !== ws.site)
+        peers: roster(r).filter(p => p.site !== ws.site).map(p => ({ ...p, ...(r.cursors.get(p.site) ?? {}) })),
       });
 
       broadcast(r, { type: 'peer-join', peer: { site: ws.site, name: ws.name, color: ws.color } }, ws);
@@ -100,7 +102,7 @@ wss.on('connection', (ws, req) => {
     }
 
     if (msg.type === 'cursor') {
-      // Presence is ephemeral. It is relayed, never stored.
+      r.cursors.set(ws.site, { anchor: msg.anchor, focus: msg.focus });
       broadcast(r, { type: 'cursor', site: ws.site, anchor: msg.anchor, focus: msg.focus }, ws);
     }
   });
@@ -109,6 +111,7 @@ wss.on('connection', (ws, req) => {
     const r = ws.room;
     if (!r) return;
     r.peers.delete(ws);
+    r.cursors.delete(ws.site);
     broadcast(r, { type: 'peer-leave', site: ws.site });
     if (r.peers.size === 0) {
       // Keep the log so a returning client can catch up.
