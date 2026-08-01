@@ -68,7 +68,6 @@ export class Presence {
       this.drawCaret(peer, b, base);
     }
 
-    this.onRoster?.(this.roster());
   }
 
   /** Client rects for a CRDT range, via a temporary DOM Range. */
