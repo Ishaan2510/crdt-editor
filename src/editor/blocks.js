@@ -1,6 +1,6 @@
 const INLINE = ['bold', 'italic', 'code'];
 
-function inlineOf(attrs) {
+export function inlineOf(attrs) {
   const out = {};
   for (const k of INLINE) if (attrs[k]) out[k] = attrs[k];
   return out;

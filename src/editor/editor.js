@@ -1,5 +1,5 @@
 import { insertAt, deleteAt, formatRange, formatBlock } from '../crdt/ops.js';
-import { buildBlocks } from './blocks.js';
+import { buildBlocks, inlineOf } from './blocks.js';
 import { renderDoc } from './render.js';
 import { indexFromDom, domFromIndex, setSelection } from './selection.js';
 
@@ -16,15 +16,22 @@ export class Editor {
     this.onOps = onOps;
     this.onSelection = onSelection;
     this.map = [];
+    this.storedAttrs = null;  // format armed by the toolbar, not yet typed
+    this.storedAt = null;
 
     root.setAttribute('contenteditable', 'true');
     root.setAttribute('spellcheck', 'false');
 
     root.addEventListener('beforeinput', e => this.onBeforeInput(e));
     document.addEventListener('selectionchange', () => {
-      if (this.root.contains(window.getSelection()?.anchorNode)) {
-        this.onSelection(this.anchors());
+      if (!this.root.contains(window.getSelection()?.anchorNode)) return;
+      // A stored format belongs to one caret position. Moving cancels it.
+      const r = this.range();
+      if (this.storedAttrs && (!r || r.start !== this.storedAt)) {
+        this.storedAttrs = null;
+        this.storedAt = null;
       }
+      this.onSelection(this.anchors());
     });
 
     this.refresh();
@@ -112,18 +119,49 @@ export class Editor {
     // historyUndo, insertCompositionText and the rest are cancelled above.
   }
 
+  /**
+   * Formatting a new character should inherit: from the first selected
+   * character when replacing a selection, otherwise from the left
+   * neighbour, falling back to the right at the start of a block.
+   * Newlines are skipped because they carry block attrs, not inline ones.
+   */
+  inheritedAt(r) {
+    const vis = this.doc.visible();
+    const pick = n => (n && n.char !== '\n' ? inlineOf(n.attrs) : null);
+    if (r.end > r.start) {
+      const sel = pick(vis[r.start]);
+      if (sel) return sel;
+    }
+    return pick(vis[r.start - 1]) ?? pick(vis[r.start]) ?? {};
+  }
+
+  /** Inherited formatting, overridden by anything the toolbar armed. */
+  attrsForInsert(r) {
+    const merged = { ...this.inheritedAt(r), ...(this.storedAttrs ?? {}) };
+    for (const k of Object.keys(merged)) if (merged[k] == null) delete merged[k];
+    return merged;
+  }
+
   replace(r, text) {
     if (!r || !text) return;
+    const attrs = this.attrsForInsert(r); // computed before the delete shifts things
     const ops = [];
     if (r.end > r.start) ops.push(...deleteAt(this.doc, r.start, r.end - r.start));
-    ops.push(...insertAt(this.doc, r.start, text));
-    const anchor = ops[ops.length - 1].id;
-    this.commit(ops, anchor);
+    ops.push(...insertAt(this.doc, r.start, text, attrs));
+    this.commit(ops, ops[ops.length - 1].id);
   }
 
   remove(r) {
     if (!r || r.end <= r.start) return;
-    const ops = deleteAt(this.doc, r.start, r.end - r.start);
+    const vis = this.doc.visible();
+    const ops = [];
+
+    for (let i = r.start; i < r.end && i < vis.length; i++) {
+      // The document must always keep one block terminator, otherwise
+      // there is nothing left for block formatting to attach to.
+      if (vis[i].char === '\n' && i === vis.length - 1) continue;
+      ops.push(this.doc.localDelete(vis[i].id));
+    }
     if (!ops.length) return;
     this.commit(ops, this.doc.anchorAt(r.start));
   }
@@ -158,7 +196,16 @@ export class Editor {
 
   toggleInline(key) {
     const r = this.range();
-    if (!r || r.end <= r.start) return;
+    if (!r) return;
+
+    // Nothing selected: arm the format for the next keystroke.
+    if (r.end === r.start) {
+      const active = this.attrsForInsert(r)[key];
+      this.storedAttrs = { ...(this.storedAttrs ?? {}), [key]: active ? null : true };
+      this.storedAt = r.start;
+      return;
+    }
+
     const vis = this.doc.visible();
     const on = vis.slice(r.start, r.end).every(n => n.attrs[key]);
     const op = formatRange(this.doc, r.start, r.end, key, on ? null : true);
