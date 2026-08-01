@@ -1,9 +1,9 @@
 import './style.css';
 import { Doc } from './crdt/document.js';
 import { Editor } from './editor/editor.js';
+import { Presence } from './editor/presence.js';
 import { SyncClient } from './sync/client.js';
 
-/* Room id lives in the URL so two tabs can share a document. */
 if (!location.hash) location.hash = Math.random().toString(36).slice(2, 8);
 const room = location.hash.slice(1);
 
@@ -16,11 +16,18 @@ const identity = { site: doc.site, name: pick(NAMES), color: pick(COLORS) };
 
 const statusEl = document.querySelector('#status');
 const toggleEl = document.querySelector('#connection');
+const peersEl = document.querySelector('#peers');
 
 const editor = new Editor(document.querySelector('#editor'), doc, {
   onOps: ops => sync.send(ops),
   onSelection: ({ anchorId, focusId }) => sync.cursor(anchorId, focusId)
 });
+
+const presence = new Presence(document.querySelector('#presence'), editor);
+presence.onRoster = drawRoster;
+
+// Remote edits reflow the text, so every rebuild re-measures the overlay.
+editor.onAfterRender = () => presence.draw();
 
 const sync = new SyncClient(
   import.meta.env.VITE_SYNC_URL ?? `ws://${location.hostname}:8787`,
@@ -30,39 +37,46 @@ const sync = new SyncClient(
     identity,
     onOps: ops => editor.applyRemote(ops),
     onStatus: setStatus,
-    onPeers: () => {},
-    onCursor: () => {}
+    onPeers: (list, joined, left) => {
+      if (list) presence.setPeers(list);
+      else if (joined) presence.join(joined);
+      else if (left) presence.leave(left);
+    },
+    onCursor: msg => presence.update(msg.site, msg.anchor, msg.focus)
   }
 );
 
 function setStatus(state) {
-  const label = { online: 'connected', connecting: 'connecting', offline: 'offline' }[state];
-  statusEl.textContent = label;
+  statusEl.textContent = { online: 'connected', connecting: 'connecting', offline: 'offline' }[state];
   statusEl.className = `status ${state}`;
   toggleEl.textContent = state === 'offline' ? 'Go online' : 'Go offline';
+  if (state !== 'online') presence.clear();
 }
 
-toggleEl.addEventListener('click', () => {
-  if (sync.connected || !sync.manualOffline) sync.disconnect();
-  else sync.connect();
-});
+function drawRoster(list) {
+  peersEl.replaceChildren();
+  const me = document.createElement('span');
+  me.className = 'chip';
+  me.innerHTML = `<span class="dot" style="background:${identity.color}"></span>${identity.name} (you)`;
+  peersEl.appendChild(me);
 
-/*
- * mousedown rather than click: the button would otherwise steal focus
- * from the editor and collapse the selection before the handler runs.
- * preventDefault keeps the caret and selection exactly where they are.
- */
+  for (const p of list) {
+    const chip = document.createElement('span');
+    chip.className = 'chip';
+    chip.innerHTML = `<span class="dot" style="background:${p.color}"></span>${p.name}`;
+    peersEl.appendChild(chip);
+  }
+}
+
 document.querySelector('#toolbar').addEventListener('mousedown', e => {
   const btn = e.target.closest('button');
   if (!btn) return;
   e.preventDefault();
   const { inline, block, value } = btn.dataset;
-  if (inline) {
-    editor.toggleInline(inline);
-  } else if (block) {
-    editor.toggleBlock(block, isNaN(+value) ? value : +value);
-  }
+  if (inline) editor.toggleInline(inline);
+  else if (block) editor.toggleBlock(block, isNaN(+value) ? value : +value);
 });
 
+drawRoster([]);
 sync.connect();
 window.__doc = doc;
