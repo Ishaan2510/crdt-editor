@@ -128,6 +128,10 @@ export class Doc {
 
     this.nodes.set(key, node);
 
+    // Attributes carried on an insert need a clock too, so a later
+    // format op can dominate them by the same rule as everything else.
+    for (const k of Object.keys(node.attrs)) node.attrClocks[k] = op.id;
+
     let siblings = this.children.get(parentKey);
     if (!siblings) {
       siblings = [];
@@ -200,20 +204,50 @@ export class Doc {
   }
 
   /**
-   * Non-deleted nodes in document order.
-   * The editor maps DOM offsets to ids with this, so it is not test-only.
-   * Deleted nodes are still traversed because their children are live.
+   * Every node in document order, tombstones included.
+   * Deleted nodes stay in the walk because their children are live
+   * and because a caret can be anchored to one.
    */
-  visible() {
+  ordered() {
     const out = [];
     const stack = [...(this.children.get(ROOT) ?? [])].reverse();
     while (stack.length) {
       const node = stack.pop();
-      if (!node.deleted) out.push(node);
+      out.push(node);
       const kids = this.children.get(idStr(node.id));
       if (kids) for (let i = kids.length - 1; i >= 0; i--) stack.push(kids[i]);
     }
     return out;
+  }
+
+  /** Non-deleted nodes in document order. This is what the screen shows. */
+  visible() {
+    return this.ordered().filter(n => !n.deleted);
+  }
+
+  /**
+   * Caret anchors are character ids, not offsets, so they stay correct
+   * when a remote edit shifts everything around them.
+   */
+  anchorAt(index) {
+    const vis = this.visible();
+    if (index <= 0) return null;
+    return vis[Math.min(index, vis.length) - 1]?.id ?? null;
+  }
+
+  /**
+   * Inverse of anchorAt. If the anchor was deleted while the caret sat
+   * on it, fall back to the position it used to occupy.
+   */
+  caretAfter(id) {
+    if (id === null) return 0;
+    const key = idStr(id);
+    let seen = 0;
+    for (const n of this.ordered()) {
+      if (idStr(n.id) === key) return n.deleted ? seen : seen + 1;
+      if (!n.deleted) seen++;
+    }
+    return seen;
   }
 
   render() {
