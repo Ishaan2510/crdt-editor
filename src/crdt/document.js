@@ -9,6 +9,10 @@ export class Doc {
     this.children.set(ROOT, []);
     this.pending = [];
 
+    /** Every op this replica has ever seen, in arrival order. */
+    this.log = [];
+    this.seen = new Set();
+
     // The editor asks for a document that always has one block terminator.
     // The CRDT itself stays content-agnostic.
     if (seed) {
@@ -50,6 +54,14 @@ export class Doc {
    * Returns true if the document actually changed.
    */
   apply(op) {
+    // Record on first sight, whether or not it can be applied yet.
+    // A buffered op is still ours to share.
+    const key = idStr(op.id);
+    if (!this.seen.has(key)) {
+      this.seen.add(key);
+      this.log.push(op);
+    }
+
     const changed = this._tryApply(op);
     if (changed) this._drain();
     return changed;
@@ -252,5 +264,21 @@ export class Doc {
 
   render() {
     return this.visible().map(n => n.char).join('');
+  }
+
+  /**
+   * Highest Lamport value seen per site. Because each site issues ops
+   * with strictly increasing Lamport values and the relay preserves
+   * per-connection order, "I have op (s, n)" implies I have every op
+   * from s below n. That prefix property is what makes one number
+   * per site sufficient to describe what a replica knows.
+   */
+  vector() {
+    const v = {};
+    for (const op of this.log) {
+      const { site, lamport } = op.id;
+      if (!(site in v) || lamport > v[site]) v[site] = lamport;
+    }
+    return v;
   }
 }
