@@ -32,3 +32,24 @@ export function deleteAt(doc, index, count) {
 export function deliver(doc, ops) {
   for (const op of ops) doc.applyRemote(op);
 }
+
+/** Format a visible range [start, end). Returns the op, or null if empty. */
+export function formatRange(doc, start, end, key, value) {
+  const vis = doc.visible();
+  const from = Math.max(0, start);
+  const to = Math.min(end, vis.length);
+  if (to <= from) return null;
+  return doc.localFormat(vis.slice(from, to).map(n => n.id), key, value);
+}
+
+/**
+ * Block formatting attaches to the newline that terminates the block
+ * containing `index`, so heading and list live on one character.
+ */
+export function formatBlock(doc, index, key, value) {
+  const vis = doc.visible();
+  for (let i = Math.max(0, index); i < vis.length; i++) {
+    if (vis[i].char === '\n') return doc.localFormat([vis[i].id], key, value);
+  }
+  return null;
+}

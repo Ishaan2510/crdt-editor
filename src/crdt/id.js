@@ -20,3 +20,18 @@ export function compareIds(a, b) {
   if (a.site > b.site) return 1;
   return 0;
 }
+
+/**
+ * Fixed id for the editor's seeded newline. Every replica derives it
+ * identically, so all replicas produce the same node rather than one each.
+ */
+export const GENESIS = { site: '\u0000genesis', lamport: 0 };
+
+/**
+ * Total order over ids, used for last-writer-wins on attributes.
+ * Distinct from compareIds, which is sibling render order.
+ */
+export function dominates(a, b) {
+  if (a.lamport !== b.lamport) return a.lamport > b.lamport;
+  return a.site > b.site;
+}

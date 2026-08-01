@@ -1,19 +1,19 @@
-import { ROOT, idStr, compareIds, makeSiteId } from './id.js';
+import { ROOT, GENESIS, idStr, compareIds, dominates, makeSiteId } from './id.js';
 
 export class Doc {
-  constructor(siteId = makeSiteId()) {
+  constructor(siteId = makeSiteId(), { seed = false } = {}) {
     this.site = siteId;
     this.lamport = 0;
-
-    /** @type {Map<string, object>} idStr -> node */
     this.nodes = new Map();
-
-    /** @type {Map<string, object[]>} parent idStr -> children, kept sorted */
     this.children = new Map();
     this.children.set(ROOT, []);
-
-    /** Operations that arrived before their parent did. */
     this.pending = [];
+
+    // The editor asks for a document that always has one block terminator.
+    // The CRDT itself stays content-agnostic.
+    if (seed) {
+      this.apply({ type: 'insert', id: GENESIS, char: '\n', parent: null, attrs: {} });
+    }
   }
 
   /** Advance the Lamport clock. Pass a remote value when applying a remote op. */
@@ -58,7 +58,50 @@ export class Doc {
   _tryApply(op) {
     if (op.type === 'insert') return this._tryInsert(op);
     if (op.type === 'delete') return this._tryDelete(op);
+    if (op.type === 'format') return this._tryFormat(op);
     return false;
+  }
+
+  /**
+   * Last-writer-wins per attribute key. A format op may cover characters
+   * that have not all arrived, so it applies to what is present and
+   * re-buffers for the rest.
+   */
+  _tryFormat(op) {
+    let changed = false;
+    let missing = false;
+
+    for (const target of op.targets) {
+      const node = this.nodes.get(idStr(target));
+      if (!node) {
+        missing = true;
+        continue;
+      }
+
+      const prev = node.attrClocks[op.key];
+      // Not strictly newer, so an older or re-delivered op cannot overwrite.
+      if (prev && !dominates(op.id, prev)) continue;
+
+      node.attrs[op.key] = op.value;
+      node.attrClocks[op.key] = op.id;
+      changed = true;
+    }
+
+    if (missing) this.pending.push(op);
+    return changed;
+  }
+
+  /** Editor entry point. One op covers a whole selection. */
+  localFormat(targetIds, key, value) {
+    const op = {
+      type: 'format',
+      id: { site: this.site, lamport: this.tick() },
+      targets: targetIds,
+      key,
+      value
+    };
+    this.apply(op);
+    return op;
   }
 
   _tryInsert(op) {
